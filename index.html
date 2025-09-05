@@ -17,17 +17,35 @@
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
 
-    const sun = { radius: 20, color: 'yellow' };
-    const planets = [
-      { name: 'Mercury', color: '#a9a9a9', radius: 4, distance: 40, speed: 0.04, angle: 0 },
-      { name: 'Venus', color: '#f5deb3', radius: 6, distance: 70, speed: 0.03, angle: 0 },
-      { name: 'Earth', color: '#1e90ff', radius: 6, distance: 100, speed: 0.02, angle: 0 },
-      { name: 'Mars', color: '#ff4500', radius: 5, distance: 130, speed: 0.017, angle: 0 },
-      { name: 'Jupiter', color: '#ffa500', radius: 12, distance: 170, speed: 0.009, angle: 0 },
-      { name: 'Saturn', color: '#daa520', radius: 10, distance: 210, speed: 0.007, angle: 0 },
-      { name: 'Uranus', color: '#7fffd4', radius: 8, distance: 240, speed: 0.005, angle: 0 },
-      { name: 'Neptune', color: '#4169e1', radius: 8, distance: 270, speed: 0.004, angle: 0 }
+    const maxDistance = 220;
+    const maxSemiMajorAxis = 30.05; // Neptune's semi-major axis in AU
+    const logMax = Math.log(maxSemiMajorAxis + 1);
+    const maxPlanetRadius = 69911; // Jupiter radius in km
+    const maxDisplayRadius = 12; // Jupiter display radius in px
+    const timeScale = 0.05; // animation speed factor
+
+    const planetData = [
+      { name: 'Mercury', color: '#a9a9a9', radius: 2440, distance: 0.39, period: 88 },
+      { name: 'Venus', color: '#f5deb3', radius: 6052, distance: 0.72, period: 225 },
+      { name: 'Earth', color: '#1e90ff', radius: 6371, distance: 1.0, period: 365 },
+      { name: 'Mars', color: '#ff4500', radius: 3390, distance: 1.52, period: 687 },
+      { name: 'Jupiter', color: '#ffa500', radius: 69911, distance: 5.2, period: 4333 },
+      { name: 'Saturn', color: '#daa520', radius: 58232, distance: 9.58, period: 10759, hasRings: true },
+      { name: 'Uranus', color: '#7fffd4', radius: 25362, distance: 19.2, period: 30688 },
+      { name: 'Neptune', color: '#4169e1', radius: 24622, distance: 30.05, period: 60182 }
     ];
+
+    const sun = {
+      radius: Math.cbrt(695700) / Math.cbrt(maxPlanetRadius) * maxDisplayRadius,
+      color: 'yellow'
+    };
+
+    const planets = planetData.map(p => {
+      const distance = Math.log(p.distance + 1) / logMax * maxDistance + 20;
+      const radius = Math.cbrt(p.radius) / Math.cbrt(maxPlanetRadius) * maxDisplayRadius;
+      const speed = (2 * Math.PI) / p.period * timeScale;
+      return { ...p, distance, radius, speed, angle: Math.random() * Math.PI * 2 };
+    });
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -44,6 +62,10 @@
       ctx.arc(cx, cy, sun.radius, 0, Math.PI * 2);
       ctx.fill();
 
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+
       planets.forEach(p => {
         p.angle += p.speed;
         const x = cx + Math.cos(p.angle) * p.distance;
@@ -52,6 +74,17 @@
         ctx.beginPath();
         ctx.arc(x, y, p.radius, 0, Math.PI * 2);
         ctx.fill();
+
+        if (p.hasRings) {
+          ctx.strokeStyle = 'rgba(218,165,32,0.6)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(x, y, p.radius * 2, p.radius * 0.7, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = '#fff';
+        ctx.fillText(p.name, x + p.radius + 2, y);
       });
 
       requestAnimationFrame(draw);
