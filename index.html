@@ -7,6 +7,7 @@
     body { background: #000; color: #fff; text-align: center; font-family: sans-serif; }
     canvas { background: #000; display: block; margin: 0 auto; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.0/astronomy.min.js"></script>
 </head>
 <body>
   <h1>Solar System</h1>
@@ -22,7 +23,7 @@
     const logMax = Math.log(maxSemiMajorAxis + 1);
     const maxPlanetRadius = 69911; // Jupiter radius in km
     const maxDisplayRadius = 12; // Jupiter display radius in px
-    const timeScale = 0.05; // animation speed factor
+    const timeScale = 100; // simulation runs 100x faster than real time
 
     const planetData = [
       { name: 'Mercury', color: '#a9a9a9', radius: 2440, distance: 0.39, period: 88 },
@@ -43,11 +44,23 @@
     const planets = planetData.map(p => {
       const distance = Math.log(p.distance + 1) / logMax * maxDistance + 20;
       const radius = Math.cbrt(p.radius) / Math.cbrt(maxPlanetRadius) * maxDisplayRadius;
-      const speed = (2 * Math.PI) / p.period * timeScale;
-      return { ...p, distance, radius, speed, angle: Math.random() * Math.PI * 2 };
+      const angularVelocity = (2 * Math.PI) / p.period; // radians per day
+      return { ...p, distance, radius, angularVelocity, angle: 0 };
     });
 
-    function draw() {
+    const astroTime = Astronomy.MakeTime(new Date());
+    planets.forEach(p => {
+      const vec = Astronomy.HelioVector(p.name, astroTime);
+      p.angle = Math.atan2(vec.y, vec.x);
+    });
+
+    let lastTime = performance.now();
+
+    function draw(now) {
+      const deltaSeconds = (now - lastTime) / 1000;
+      lastTime = now;
+      const daysElapsed = deltaSeconds * timeScale / 86400;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
@@ -67,7 +80,7 @@
       ctx.textBaseline = 'middle';
 
       planets.forEach(p => {
-        p.angle += p.speed;
+        p.angle += p.angularVelocity * daysElapsed;
         const x = cx + Math.cos(p.angle) * p.distance;
         const y = cy + Math.sin(p.angle) * p.distance;
         ctx.fillStyle = p.color;
@@ -89,7 +102,7 @@
 
       requestAnimationFrame(draw);
     }
-    draw();
+    requestAnimationFrame(draw);
   </script>
 </body>
 </html>
