@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>星象模拟展示</title>
+    <title>Solar System Simulation</title>
     <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
     <script defer src="https://pyscript.net/latest/pyscript.js"></script>
     <style>
@@ -12,39 +12,55 @@
     <py-config>
         packages = ["numpy"]
         [[fetch]]
-        files = ["geocentric_sim.py"]
+        files = ["solar_system.py"]
     </py-config>
 </head>
 <body>
-    <h1>地心天体运动模拟</h1>
+    <h1>Solar System Animation</h1>
     <canvas id="sky" width="600" height="600"></canvas>
     <py-script>
 import numpy as np
 from js import document, requestAnimationFrame
-from geocentric_sim import step, masses, positions, velocities, AU
+from solar_system import step, masses, positions, velocities, AU, SUN_IDX
 
 canvas = document.getElementById("sky")
 ctx = canvas.getContext("2d")
 scale = 150 / AU
-earth_idx = 3
 pos = positions.copy()
 vel = velocities.copy()
 dt = 60 * 60  # one hour
+
+# Colour per body: Sun, Mercury, Venus, Earth, Mars
+colors = ["#ffff00", "#bebebe", "#e5c39b", "#00a2ff", "#ff4500"]
+orbit_radii = np.linalg.norm(positions - positions[SUN_IDX], axis=1)
 
 
 def draw(*args):
     global pos, vel
     pos, vel = step(pos, vel, masses, dt)
-    rel = pos - pos[earth_idx]
+    rel = pos - pos[SUN_IDX]
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    # Draw orbital paths
+    for i, r in enumerate(orbit_radii):
+        if i == SUN_IDX:
+            continue
+        ctx.beginPath()
+        ctx.arc(canvas.width/2, canvas.height/2, r*scale, 0, 2*np.pi)
+        ctx.strokeStyle = "#333"
+        ctx.stroke()
+
+    # Draw bodies
     for i, (x, y, z) in enumerate(rel):
         px = canvas.width / 2 + x * scale
         py = canvas.height / 2 + y * scale
         ctx.beginPath()
-        ctx.arc(px, py, 5 if i == earth_idx else 3, 0, 2 * np.pi)
-        ctx.fillStyle = "#00a2ff" if i == earth_idx else "#ffdd00"
+        ctx.arc(px, py, 8 if i == SUN_IDX else 4, 0, 2 * np.pi)
+        ctx.fillStyle = colors[i]
         ctx.fill()
+
     requestAnimationFrame(draw)
+
 
 requestAnimationFrame(draw)
     </py-script>
