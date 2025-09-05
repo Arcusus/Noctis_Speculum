@@ -21,25 +21,28 @@ AU = 1.495978707e11  # Astronomical unit (m)
 DAY = 86400.0
 
 
-# Masses (kg) of Sun, Mercury, Venus, Earth and Mars respectively
+# Masses (kg) of Sun, Mercury, Venus, Earth, Moon and Mars respectively
 SUN_IDX = 0
+EARTH_IDX = 3
 masses = np.array([
-    1.9885e30,  # Sun
-    3.3011e23,  # Mercury
-    4.8675e24,  # Venus
+    1.9885e30,   # Sun
+    3.3011e23,   # Mercury
+    4.8675e24,   # Venus
     5.97219e24,  # Earth
-    6.4171e23,  # Mars
+    7.34767309e22,  # Moon
+    6.4171e23,   # Mars
 ], dtype=np.float64)
 
 
 # Initial positions (m) in a heliocentric frame at t=0.
 # Earth starts on the positive x-axis; other planets are placed for demo.
 positions = np.array([
-    [0.0, 0.0, 0.0],            # Sun
-    [0.0, 0.387 * AU, 0.0],     # Mercury
-    [0.0, 0.723 * AU, 0.0],     # Venus
-    [AU, 0.0, 0.0],             # Earth
-    [0.0, 1.524 * AU, 0.0],     # Mars
+    [0.0, 0.0, 0.0],             # Sun
+    [0.0, 0.387 * AU, 0.0],      # Mercury
+    [0.0, 0.723 * AU, 0.0],      # Venus
+    [AU, 0.0, 0.0],              # Earth
+    [AU + 0.00257 * AU, 0.0, 0.0],  # Moon (approximate)
+    [0.0, 1.524 * AU, 0.0],      # Mars
 ], dtype=np.float64)
 
 
@@ -49,6 +52,7 @@ velocities = np.array([
     [np.sqrt(G * masses[SUN_IDX] / (0.387 * AU)), 0.0, 0.0],
     [np.sqrt(G * masses[SUN_IDX] / (0.723 * AU)), 0.0, 0.0],
     [0.0, np.sqrt(G * masses[SUN_IDX] / AU), 0.0],
+    [0.0, np.sqrt(G * masses[SUN_IDX] / AU) + np.sqrt(G * masses[EARTH_IDX] / (0.00257 * AU)), 0.0],
     [np.sqrt(G * masses[SUN_IDX] / (1.524 * AU)), 0.0, 0.0],
 ], dtype=np.float64)
 

@@ -21,7 +21,7 @@
     <py-script>
 import numpy as np
 from js import document, requestAnimationFrame
-from solar_system import step, masses, positions, velocities, AU, SUN_IDX
+from solar_system import step, masses, positions, velocities, AU, EARTH_IDX
 
 canvas = document.getElementById("sky")
 ctx = canvas.getContext("2d")
@@ -30,24 +30,35 @@ pos = positions.copy()
 vel = velocities.copy()
 dt = 60 * 60  # one hour
 
-# Colour per body: Sun, Mercury, Venus, Earth, Mars
-colors = ["#ffff00", "#bebebe", "#e5c39b", "#00a2ff", "#ff4500"]
-orbit_radii = np.linalg.norm(positions - positions[SUN_IDX], axis=1)
+# Colour per body: Sun, Mercury, Venus, Earth, Moon, Mars
+colors = ["#ffff00", "#bebebe", "#e5c39b", "#00a2ff", "#bbbbbb", "#ff4500"]
+history = [[] for _ in masses]
+trail = 200
 
 
 def draw(*args):
-    global pos, vel
+    global pos, vel, history
     pos, vel = step(pos, vel, masses, dt)
-    rel = pos - pos[SUN_IDX]
+    rel = pos - pos[EARTH_IDX]
+    for i in range(len(masses)):
+        history[i].append(rel[i])
+        if len(history[i]) > trail:
+            history[i].pop(0)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    # Draw orbital paths
-    for i, r in enumerate(orbit_radii):
-        if i == SUN_IDX:
+    # Draw trajectories
+    for i, track in enumerate(history):
+        if i == EARTH_IDX:
             continue
         ctx.beginPath()
-        ctx.arc(canvas.width/2, canvas.height/2, r*scale, 0, 2*np.pi)
-        ctx.strokeStyle = "#333"
+        for j, (x, y, z) in enumerate(track):
+            px = canvas.width / 2 + x * scale
+            py = canvas.height / 2 + y * scale
+            if j == 0:
+                ctx.moveTo(px, py)
+            else:
+                ctx.lineTo(px, py)
+        ctx.strokeStyle = colors[i]
         ctx.stroke()
 
     # Draw bodies
@@ -55,7 +66,7 @@ def draw(*args):
         px = canvas.width / 2 + x * scale
         py = canvas.height / 2 + y * scale
         ctx.beginPath()
-        ctx.arc(px, py, 8 if i == SUN_IDX else 4, 0, 2 * np.pi)
+        ctx.arc(px, py, 8 if i == EARTH_IDX else 4, 0, 2 * np.pi)
         ctx.fillStyle = colors[i]
         ctx.fill()
 
