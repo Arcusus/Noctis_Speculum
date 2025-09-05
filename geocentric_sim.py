@@ -1,5 +1,11 @@
 import numpy as np
-from numba import njit
+
+# numba is optional; fall back to pure Python if unavailable
+try:
+    from numba import njit
+except Exception:  # pragma: no cover - environments without numba
+    def njit(func):
+        return func
 
 # Gravitational constant
 G = 6.67430e-11  # m^3 kg^-1 s^-2

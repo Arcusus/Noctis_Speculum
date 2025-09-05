@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>星象模拟展示</title>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <style>
+        body { background: #000; color: #fff; text-align: center; font-family: sans-serif; }
+        canvas { background: #111; margin-top: 20px; border: 1px solid #444; }
+    </style>
+    <py-config>
+        packages = ["numpy"]
+    </py-config>
+</head>
+<body>
+    <h1>地心天体运动模拟</h1>
+    <canvas id="sky" width="600" height="600"></canvas>
+    <py-script>
+import numpy as np
+from js import document, requestAnimationFrame
+from geocentric_sim import step, masses, positions, velocities, AU
+
+canvas = document.getElementById("sky")
+ctx = canvas.getContext("2d")
+scale = 150 / AU
+earth_idx = 3
+pos = positions.copy()
+vel = velocities.copy()
+dt = 60 * 60  # one hour
+
+
+def draw(*args):
+    global pos, vel
+    pos, vel = step(pos, vel, masses, dt)
+    rel = pos - pos[earth_idx]
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    for i, (x, y, z) in enumerate(rel):
+        px = canvas.width / 2 + x * scale
+        py = canvas.height / 2 + y * scale
+        ctx.beginPath()
+        ctx.arc(px, py, 5 if i == earth_idx else 3, 0, 2 * np.pi)
+        ctx.fillStyle = "#00a2ff" if i == earth_idx else "#ffdd00"
+        ctx.fill()
+    requestAnimationFrame(draw)
+
+requestAnimationFrame(draw)
+    </py-script>
+</body>
+</html>
