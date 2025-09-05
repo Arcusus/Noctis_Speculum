@@ -7,7 +7,6 @@
     body { background: #000; color: #fff; text-align: center; font-family: sans-serif; }
     canvas { background: #000; display: block; margin: 0 auto; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.0/astronomy.min.js"></script>
 </head>
 <body>
   <h1>Solar System</h1>
@@ -23,17 +22,17 @@
     const logMax = Math.log(maxSemiMajorAxis + 1);
     const maxPlanetRadius = 69911; // Jupiter radius in km
     const maxDisplayRadius = 12; // Jupiter display radius in px
-    const timeScale = 100; // simulation runs 100x faster than real time
+    const timeScale = 0.05; // animation speed factor
 
     const planetData = [
-      { name: 'Mercury', color: '#a9a9a9', radius: 2440, distance: 0.39 },
-      { name: 'Venus', color: '#f5deb3', radius: 6052, distance: 0.72 },
-      { name: 'Earth', color: '#1e90ff', radius: 6371, distance: 1.0 },
-      { name: 'Mars', color: '#ff4500', radius: 3390, distance: 1.52 },
-      { name: 'Jupiter', color: '#ffa500', radius: 69911, distance: 5.2 },
-      { name: 'Saturn', color: '#daa520', radius: 58232, distance: 9.58, hasRings: true },
-      { name: 'Uranus', color: '#7fffd4', radius: 25362, distance: 19.2 },
-      { name: 'Neptune', color: '#4169e1', radius: 24622, distance: 30.05 }
+      { name: 'Mercury', color: '#a9a9a9', radius: 2440, distance: 0.39, period: 88 },
+      { name: 'Venus', color: '#f5deb3', radius: 6052, distance: 0.72, period: 225 },
+      { name: 'Earth', color: '#1e90ff', radius: 6371, distance: 1.0, period: 365 },
+      { name: 'Mars', color: '#ff4500', radius: 3390, distance: 1.52, period: 687 },
+      { name: 'Jupiter', color: '#ffa500', radius: 69911, distance: 5.2, period: 4333 },
+      { name: 'Saturn', color: '#daa520', radius: 58232, distance: 9.58, period: 10759, hasRings: true },
+      { name: 'Uranus', color: '#7fffd4', radius: 25362, distance: 19.2, period: 30688 },
+      { name: 'Neptune', color: '#4169e1', radius: 24622, distance: 30.05, period: 60182 }
     ];
 
     const sun = {
@@ -42,28 +41,19 @@
     };
 
     const planets = planetData.map(p => {
-      const orbitRadius = Math.log(p.distance + 1) / logMax * maxDistance + 20;
-      const displayRadius = Math.cbrt(p.radius) / Math.cbrt(maxPlanetRadius) * maxDisplayRadius;
-      return { ...p, orbitRadius, radius: displayRadius };
+      const distance = Math.log(p.distance + 1) / logMax * maxDistance + 20;
+      const radius = Math.cbrt(p.radius) / Math.cbrt(maxPlanetRadius) * maxDisplayRadius;
+      const speed = (2 * Math.PI) / p.period * timeScale;
+      return { ...p, distance, radius, speed, angle: Math.random() * Math.PI * 2 };
     });
 
-    let astroTime = Astronomy.MakeTime(new Date());
-    const randomDays = (Math.random() - 0.5) * 365.25 * 200; // random offset up to ±100 years
-    astroTime = astroTime.AddDays(randomDays);
-    let lastTime = performance.now();
-
-    function draw(now) {
-      const deltaSeconds = (now - lastTime) / 1000;
-      lastTime = now;
-      const daysElapsed = (deltaSeconds * timeScale) / 86400;
-      astroTime = astroTime.AddDays(daysElapsed);
-
+    function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
       planets.forEach(p => {
         ctx.beginPath();
-        ctx.arc(cx, cy, p.orbitRadius, 0, Math.PI * 2);
+        ctx.arc(cx, cy, p.distance, 0, Math.PI * 2);
         ctx.stroke();
       });
 
@@ -77,13 +67,9 @@
       ctx.textBaseline = 'middle';
 
       planets.forEach(p => {
-        const vec = Astronomy.HelioVector(p.name, astroTime);
-        const dist = Math.hypot(vec.x, vec.y);
-        const displayDist = Math.log(dist + 1) / logMax * maxDistance + 20;
-        const scale = displayDist / dist;
-        const x = cx + vec.x * scale;
-        const y = cy + vec.y * scale;
-
+        p.angle += p.speed;
+        const x = cx + Math.cos(p.angle) * p.distance;
+        const y = cy + Math.sin(p.angle) * p.distance;
         ctx.fillStyle = p.color;
         ctx.beginPath();
         ctx.arc(x, y, p.radius, 0, Math.PI * 2);
@@ -103,7 +89,7 @@
 
       requestAnimationFrame(draw);
     }
-    requestAnimationFrame(draw);
+    draw();
   </script>
 </body>
 </html>
