@@ -40,12 +40,21 @@
       color: 'yellow'
     };
 
-    const planets = planetData.map(p => {
-      const distance = Math.log(p.distance + 1) / logMax * maxDistance + 20;
-      const radius = Math.cbrt(p.radius) / Math.cbrt(maxPlanetRadius) * maxDisplayRadius;
-      const speed = (2 * Math.PI) / p.period * timeScale;
-      return { ...p, distance, radius, speed, angle: Math.random() * Math.PI * 2 };
-    });
+    let earth;
+    const planets = planetData
+      .map(p => {
+        const distance = Math.log(p.distance + 1) / logMax * maxDistance + 20;
+        const radius = Math.cbrt(p.radius) / Math.cbrt(maxPlanetRadius) * maxDisplayRadius;
+        const speed = (2 * Math.PI) / p.period * timeScale;
+        return { ...p, distance, radius, speed, angle: Math.random() * Math.PI * 2 };
+      })
+      .filter(p => {
+        if (p.name === 'Earth') {
+          earth = p;
+          return false;
+        }
+        return true;
+      });
 
     // generate background stars
     const stars = Array.from({ length: 100 }, () => ({
@@ -69,26 +78,38 @@
       // draw distant stars
       drawStars();
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-      planets.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(cx, cy, p.distance, 0, Math.PI * 2);
-        ctx.stroke();
-      });
+      // update Earth's position
+      earth.angle += earth.speed;
+      const earthX = Math.cos(earth.angle) * earth.distance;
+      const earthY = Math.sin(earth.angle) * earth.distance;
 
+      // draw the sun relative to Earth
+      const sunX = cx - earthX;
+      const sunY = cy - earthY;
       ctx.fillStyle = sun.color;
       ctx.beginPath();
-      ctx.arc(cx, cy, sun.radius, 0, Math.PI * 2);
+      ctx.arc(sunX, sunY, sun.radius, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
 
+      // draw Earth at the center
+      ctx.fillStyle = earth.color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, earth.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillText('Earth', cx + earth.radius + 2, cy);
+
+      // draw planets relative to Earth
       planets.forEach(p => {
         p.angle += p.speed;
-        const x = cx + Math.cos(p.angle) * p.distance;
-        const y = cy + Math.sin(p.angle) * p.distance;
+        const px = Math.cos(p.angle) * p.distance;
+        const py = Math.sin(p.angle) * p.distance;
+        const x = cx + (px - earthX);
+        const y = cy + (py - earthY);
         ctx.fillStyle = p.color;
         ctx.beginPath();
         ctx.arc(x, y, p.radius, 0, Math.PI * 2);
