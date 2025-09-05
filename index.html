@@ -1,14 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Solar System</title>
-    <style>
-        body { background: #000; color: #fff; text-align: center; font-family: sans-serif; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Solar System</title>
+  <style>
+    body { background: #000; color: #fff; text-align: center; font-family: sans-serif; }
+    canvas { background: #000; display: block; margin: 0 auto; }
+  </style>
 </head>
 <body>
-    <h1>Solar System</h1>
-    <p>The previous Python-based simulation has been removed.</p>
+  <h1>Solar System</h1>
+  <canvas id="solarSystem" width="600" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById('solarSystem');
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    const sun = { radius: 20, color: 'yellow' };
+    const planets = [
+      { name: 'Mercury', color: '#a9a9a9', radius: 4, distance: 40, speed: 0.04, angle: 0 },
+      { name: 'Venus', color: '#f5deb3', radius: 6, distance: 70, speed: 0.03, angle: 0 },
+      { name: 'Earth', color: '#1e90ff', radius: 6, distance: 100, speed: 0.02, angle: 0 },
+      { name: 'Mars', color: '#ff4500', radius: 5, distance: 130, speed: 0.017, angle: 0 },
+      { name: 'Jupiter', color: '#ffa500', radius: 12, distance: 170, speed: 0.009, angle: 0 },
+      { name: 'Saturn', color: '#daa520', radius: 10, distance: 210, speed: 0.007, angle: 0 },
+      { name: 'Uranus', color: '#7fffd4', radius: 8, distance: 240, speed: 0.005, angle: 0 },
+      { name: 'Neptune', color: '#4169e1', radius: 8, distance: 270, speed: 0.004, angle: 0 }
+    ];
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      planets.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, p.distance, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      ctx.fillStyle = sun.color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, sun.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      planets.forEach(p => {
+        p.angle += p.speed;
+        const x = cx + Math.cos(p.angle) * p.distance;
+        const y = cy + Math.sin(p.angle) * p.distance;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(x, y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
 </body>
 </html>
