@@ -6,16 +6,31 @@
   <style>
     body { background: #000; color: #fff; text-align: center; font-family: sans-serif; }
     canvas { background: #000; display: block; margin: 0 auto; }
+    #emotionBarContainer {
+      width: 300px;
+      height: 20px;
+      border: 1px solid #fff;
+      margin: 20px auto;
+    }
+    #emotionBar {
+      height: 100%;
+      width: 0%;
+      background: #ff69b4;
+    }
   </style>
 </head>
 <body>
   <h1>Solar System</h1>
   <canvas id="solarSystem" width="600" height="600"></canvas>
+  <div>Emotion Level: <span id="emotionValue">0</span>%</div>
+  <div id="emotionBarContainer"><div id="emotionBar"></div></div>
   <script>
     const canvas = document.getElementById('solarSystem');
     const ctx = canvas.getContext('2d');
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
+    const emotionValue = document.getElementById('emotionValue');
+    const emotionBar = document.getElementById('emotionBar');
 
     const maxDistance = 220;
     const maxSemiMajorAxis = 30.05; // Neptune's semi-major axis in AU
@@ -63,6 +78,19 @@
       radius: Math.random() * 1.5 + 0.5
     }));
 
+    const aspectAngles = [0, Math.PI / 3, Math.PI / 2, (2 * Math.PI) / 3, Math.PI];
+    const aspectTolerance = (5 * Math.PI) / 180; // 5 degrees in radians
+
+    function angleDifference(a, b) {
+      let diff = Math.abs(a - b) % (2 * Math.PI);
+      return diff > Math.PI ? 2 * Math.PI - diff : diff;
+    }
+
+    function aspectIntensity(diff) {
+      const minDiff = Math.min(...aspectAngles.map(a => Math.abs(diff - a)));
+      return Math.max(0, 1 - minDiff / aspectTolerance);
+    }
+
     function drawStars() {
       ctx.fillStyle = '#fff';
       stars.forEach(s => {
@@ -104,6 +132,7 @@
       ctx.fillText('Earth', cx + earth.radius + 2, cy);
 
       // draw planets relative to Earth
+      let emotion = 0;
       planets.forEach(p => {
         p.angle += p.speed;
         const px = Math.cos(p.angle) * p.distance;
@@ -125,7 +154,13 @@
 
         ctx.fillStyle = '#fff';
         ctx.fillText(p.name, x + p.radius + 2, y);
+
+        const diff = angleDifference(p.angle, earth.angle);
+        emotion += aspectIntensity(diff);
       });
+      const level = (emotion / planets.length) * 100;
+      emotionBar.style.width = level + '%';
+      emotionValue.textContent = level.toFixed(0);
 
       requestAnimationFrame(draw);
     }
