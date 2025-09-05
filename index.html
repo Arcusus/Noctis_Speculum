@@ -48,6 +48,8 @@
     });
 
     let astroTime = Astronomy.MakeTime(new Date());
+    const randomDays = (Math.random() - 0.5) * 365.25 * 200; // random offset up to ±100 years
+    astroTime = astroTime.AddDays(randomDays);
     let lastTime = performance.now();
 
     function draw(now) {
