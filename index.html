@@ -47,8 +47,27 @@
       return { ...p, distance, radius, speed, angle: Math.random() * Math.PI * 2 };
     });
 
+    // generate background stars
+    const stars = Array.from({ length: 100 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      radius: Math.random() * 1.5 + 0.5
+    }));
+
+    function drawStars() {
+      ctx.fillStyle = '#fff';
+      stars.forEach(s => {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // draw distant stars
+      drawStars();
 
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
       planets.forEach(p => {
