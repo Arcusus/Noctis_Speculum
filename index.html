@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Noctis Speculum — Ancient Readings of the Same Sky</title>
+  <style>
+    :root {
+      --fg:#fff; --bg:#000; --muted:#bbbbbb;
+      --euphony:#32cd32; --dissonance:#dc143c; --accent:#87cefa;
+    }
+    html,body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    header { text-align:center; padding:12px 12px 0; }
+    h1 { margin:4px 0 2px; font-size:20px; font-weight:600; letter-spacing:.2px; }
+    small.tagline { color:var(--muted); }
+    main { max-width:1200px; margin:0 auto; display:grid; grid-template-columns: 660px 1fr; gap:16px; padding:12px; }
+    canvas { background:#000; display:block; margin:0 auto; border:1px solid #222; }
+    .panel { border:1px solid #222; padding:12px; border-radius:10px; background:rgba(255,255,255,0.03); }
+    .row { display:flex; align-items:center; gap:8px; margin:8px 0; flex-wrap:wrap; }
+    .barWrap { width:100%; height:18px; border:1px solid #444; border-radius:5px; overflow:hidden; position:relative; background:#111; }
+    .bar { height:100%; width:0%; transition:width .25s ease-out; }
+    .bar.euphony { background:var(--euphony); }
+    .bar.dissonance { background:var(--dissonance); }
+    .band { position:absolute; top:0; bottom:0; background:rgba(255,255,255,0.10); pointer-events:none; }
+    .metrics { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .metric { font-size:13px; }
+    .kbadge { font-size:11px; padding:2px 6px; border:1px solid #333; border-radius:999px; color:var(--muted); }
+    details { margin-top:6px; }
+    summary { cursor:pointer; color:var(--accent); }
+    .legend { font-size:12px; color:var(--muted); line-height:1.45; }
+    .prompt { margin-top:10px; font-size:13px; line-height:1.35; }
+    .footer { text-align:center; color:#888; font-size:11px; margin:12px 0 20px; }
+    .num { font-variant-numeric:tabular-nums; }
+    .pill { border:1px solid #333; border-radius:999px; padding:2px 8px; font-size:11px; color:#bbb; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+    input[type="range"] { width:160px; }
+    .tradCard { border:1px solid #333; border-radius:10px; padding:10px; margin-top:8px; background:rgba(255,255,255,0.02); }
+    .tradHead { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .tradName { font-weight:600; }
+    .tradNote { color:#bfbfbf; font-size:12px; }
+    .miniGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .miniLabel { font-size:12px; color:#ccc; margin-bottom:2px; }
+    .ribbon { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+    .chip { border:1px solid #333; border-radius:999px; padding:4px 8px; font-size:12px; color:#ddd; }
+    .chip strong { color:#fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Noctis Speculum</h1>
+    <small class="tagline">Unus caelum, multae lectiones — one sky, many readings. We remain terrestrially situated.</small>
+  </header>
+
+  <main>
+    <section>
+      <canvas id="orrery" width="660" height="660" aria-label="Night sky sketch"></canvas>
+      <div class="controls" style="margin-top:10px;">
+        <label><input type="checkbox" id="frameToggle"> Constitute the Sun as centrum (modern eyes)</label>
+        <span class="pill">Pace of the world </span>
+        <input type="range" id="speedSlider" min="0.01" max="0.4" step="0.01" value="0.2" />
+        <span class="pill">Tolerance (°)</span>
+        <input type="range" id="tolSlider" min="1" max="15" step="1" value="5" />
+        <span class="pill">Stellar density</span>
+        <input type="range" id="starSlider" min="50" max="500" step="10" value="200" />
+        <span class="pill">Trail length</span>
+        <input type="range" id="trailSlider" min="1" max="10000" step="10" value="10000" />
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="row" style="justify-content:space-between;">
+        <strong>Aspect indicators <span class="kbadge">metaphoric, non-causal</span></strong>
+        <span class="kbadge">caveat lector</span>
+      </div>
+
+      <!-- Global, observer-centered impression -->
+      <div class="row">
+        <div class="metric" style="flex:1">
+          <div>Euphony (global): <span id="posVal" class="num">0</span>% <span id="posCI" class="num" style="color:#aaa"></span></div>
+          <div class="barWrap" style="margin-top:4px;">
+            <div id="posBar" class="bar euphony"></div>
+            <div id="posBand" class="band"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:-2px;">
+        <div class="metric" style="flex:1">
+          <div>Dissonance (global): <span id="negVal" class="num">0</span>% <span id="negCI" class="num" style="color:#aaa"></span></div>
+          <div class="barWrap" style="margin-top:4px;">
+            <div id="negBar" class="bar dissonance"></div>
+            <div id="negBand" class="band"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="metrics" style="margin-top:8px;">
+        <div class="metric">Frame: <span id="frameLabel">Geocentric (anthropocentric locus)</span></div>
+        <div class="metric">Tolerance: <span id="tolLabel" class="num">5</span>°</div>
+        <div class="metric">Pace: <span id="speedLabel" class="num">0.05</span></div>
+        <div class="metric">Wandering lights: <span id="countLabel" class="num">7</span></div>
+      </div>
+
+      <!-- Cultural ribbon (Maya Venus synodic state) -->
+      <div class="ribbon">
+        <div class="chip">Maya cycle: <strong id="mayaVenusState">—</strong> · day <strong id="mayaVenusDay">0</strong></div>
+      </div>
+
+      <details style="margin-top:10px;">
+        <summary>Hermeneutic note</summary>
+        <div class="legend">
+          <p><strong>Euphony</strong> rises where alignments esteemed by a tradition approximate; <strong>Dissonance</strong> rises near crossings and contraries. Tolerance expands auditory latitude; bars indicate a mean proximity, not a decree.</p>
+          <p>Use as contemplative instrumentum, not as oracular calculus.</p>
+        </div>
+      </details>
+
+      <!-- Ancient tradition profiles -->
+      <div id="traditionsContainer" style="margin-top:10px;">
+        <!-- JS injects Babylonian, Egyptian, Greek, Maya cards -->
+      </div>
+
+      <div class="prompt" id="promptBox"></div>
+
+      <details>
+        <summary>Caution</summary>
+        <div class="legend">
+          These readings echo archives and curricula—tablets, tomb calendars, philosophical schools, codices. They illuminate the present; agency remains yours.
+        </div>
+      </details>
+    </aside>
+  </main>
+
+  <div class="footer">Sidera ordinantur; homines peregrinantur. Retine miraculum, retine habenas.</div>
+
+  <script>
+    // ---------- Canvas & UI ----------
+    const canvas = document.getElementById('orrery');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height, CX = W/2, CY = H/2;
+
+    // UI elements
+    const posVal = document.getElementById('posVal');
+    const negVal = document.getElementById('negVal');
+    const posBar = document.getElementById('posBar');
+    const negBar = document.getElementById('negBar');
+    const posBand = document.getElementById('posBand');
+    const negBand = document.getElementById('negBand');
+    const frameLabel = document.getElementById('frameLabel');
+    const countLabel = document.getElementById('countLabel');
+    const tolLabel = document.getElementById('tolLabel');
+    const speedLabel = document.getElementById('speedLabel');
+    const promptBox = document.getElementById('promptBox');
+    const traditionsContainer = document.getElementById('traditionsContainer');
+
+    const frameToggle = document.getElementById('frameToggle');
+    const speedSlider = document.getElementById('speedSlider');
+    const tolSlider = document.getElementById('tolSlider');
+    const starSlider = document.getElementById('starSlider');
+    const trailSlider = document.getElementById('trailSlider');
+
+    // ---------- Scales & constants ----------
+    const maxDistance = 260;
+    const maxSemiMajorAxis = 30.05;
+    const logMax = Math.log(maxSemiMajorAxis + 1);
+    const maxPlanetRadius = 69911;
+    const maxDisplayRadius = 12;
+
+    // Planet data
+    const planetData = [
+      { name:'Mercury', color:'#a9a9a9', radius:2440, distance:0.39, period:88 },
+      { name:'Venus',   color:'#f5deb3', radius:6052, distance:0.72, period:225 },
+      { name:'Earth',   color:'#1e90ff', radius:6371, distance:1.00, period:365 },
+      { name:'Mars',    color:'#ff4500', radius:3390, distance:1.52, period:687 },
+      { name:'Jupiter', color:'#ffa500', radius:69911, distance:5.20, period:4333 },
+      { name:'Saturn',  color:'#daa520', radius:58232, distance:9.58, period:10759, hasRings:true },
+      { name:'Uranus',  color:'#7fffd4', radius:25362, distance:19.2, period:30688 },
+      { name:'Neptune', color:'#4169e1', radius:24622, distance:30.05, period:60182 }
+    ];
+
+    const sun = {
+      radius: Math.cbrt(695700) / Math.cbrt(maxPlanetRadius) * maxDisplayRadius,
+      color: 'yellow'
+    };
+
+    // Aspect targets (radians)
+    const deg = d => d * Math.PI / 180;
+    const POS_TARGETS_GLOBAL = [0, deg(60), deg(120)];
+    const NEG_TARGETS_GLOBAL = [deg(90), deg(180)];
+
+    // ---------- Maya Venus synodic cycle ----------
+    // Approximate canonical segmentation (days): 236 / 8 / 250 / 90
+    const VENUS_CYCLE = [
+      { name: 'Morning Star', days: 236, favorable: 1 },
+      { name: 'Invisible (inferior)', days: 8, favorable: 0 },
+      { name: 'Evening Star', days: 250, favorable: 1 },
+      { name: 'Invisible (superior)', days: 90, favorable: 0 },
+    ];
+    const VENUS_SY_PERIOD = VENUS_CYCLE.reduce((a,b)=>a+b.days,0); // 584
+    let venusPhaseDay = Math.floor(Math.random() * VENUS_SY_PERIOD);
+    function venusStateByDay(d){
+      let acc=0;
+      for (const seg of VENUS_CYCLE){
+        if (d < acc + seg.days) return {state:seg.name, index:VENUS_CYCLE.indexOf(seg), dayIn: d-acc, favorable: seg.favorable};
+        acc += seg.days;
+      }
+      return {state:VENUS_CYCLE[0].name, index:0, dayIn:0, favorable:1};
+    }
+
+    // ---------- Runtime state ----------
+    let timeScale = parseFloat(speedSlider.value);
+    let toleranceDeg = parseInt(tolSlider.value, 10);
+    let aspectTolerance = deg(toleranceDeg);
+    let heliocentric = false;
+    let trailMax = parseInt(trailSlider.value, 10);
+
+    // Build planets with display params + trails
+    let earth, planets;
+    function initPlanets() {
+      const mapped = planetData.map(p => {
+        const distance = Math.log(p.distance + 1) / logMax * maxDistance + 26;
+        const radius   = Math.cbrt(p.radius) / Math.cbrt(maxPlanetRadius) * maxDisplayRadius;
+        const speed    = (2 * Math.PI) / p.period;
+        return { ...p, distance, radius, baseSpeed: speed, angle: Math.random() * Math.PI * 2, trail: [] };
+      });
+      earth = mapped.find(p => p.name === 'Earth');
+      planets = mapped.filter(p => p.name !== 'Earth');
+      countLabel.textContent = String(planets.length);
+    }
+    initPlanets();
+
+    // Stars
+    let stars = [];
+    function initStars(n=200) {
+      stars = Array.from({length:n}, () => ({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.6 + 0.4,
+        tw: Math.random() * Math.PI * 2
+      }));
+    }
+    initStars(parseInt(starSlider.value,10));
+
+    // ---------- Helpers ----------
+    const TAU = Math.PI * 2;
+    const wrap = a => (a % TAU + TAU) % TAU;
+
+    function angleDifference(a, b) {
+      let diff = Math.abs(a - b) % TAU;
+      return diff > Math.PI ? TAU - diff : diff;
+    }
+    function intensity(diff, targets, tol) {
+      const minDiff = Math.min(...targets.map(t => Math.abs(diff - t)));
+      return Math.max(0, 1 - minDiff / tol);
+    }
+    function confidenceFromTolerance(tolDeg) {
+      const t = Math.min(Math.max((tolDeg - 1) / (15 - 1), 0), 1);
+      return 0.85 - 0.60 * t; // monotone falloff
+    }
+
+    // Trails
+    function pushTrail(body, x, y) {
+      body.trail.push({x, y});
+      if (body.trail.length > trailMax) body.trail.shift();
+    }
+    function drawTrail(body) {
+      if (body.trail.length < 2) return;
+      const n = body.trail.length;
+      for (let i = 1; i < n; i++) {
+        const a = body.trail[i-1], b = body.trail[i];
+        const t = i / n;
+        ctx.strokeStyle = `rgba(255,255,255,${0.05 + 0.35 * t})`;
+        ctx.lineWidth = Math.max(1, body.radius * 0.6 * t);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    }
+
+    // Drawing
+    function drawRings(x,y,rad) {
+      ctx.strokeStyle = 'rgba(218,165,32,0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rad * 2, rad * 0.7, 0, 0, TAU);
+      ctx.stroke();
+    }
+    function label(txt, x, y) {
+      ctx.font = '10px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(txt, x, y);
+    }
+    function drawStars(t) {
+      ctx.save();
+      stars.forEach(s => {
+        const twinkle = 0.6 + 0.4 * Math.sin(t * 0.001 + s.tw);
+        ctx.globalAlpha = twinkle;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, TAU);
+        ctx.fill();
+      });
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    function heliocentricFrame() {
+      const bodies = [];
+      // Sun
+      ctx.fillStyle = sun.color;
+      ctx.beginPath();
+      ctx.arc(CX, CY, sun.radius, 0, TAU);
+      ctx.fill();
+      label('Sun', CX + sun.radius + 3, CY);
+
+      // Earth & others around Sun
+      const ex = CX + Math.cos(earth.angle) * earth.distance;
+      const ey = CY + Math.sin(earth.angle) * earth.distance;
+
+      planets.forEach(p => {
+        const px = CX + Math.cos(p.angle) * p.distance;
+        const py = CY + Math.sin(p.angle) * p.distance;
+
+        drawTrail(p); pushTrail(p, px, py);
+
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(px, py, p.radius, 0, TAU);
+        ctx.fill();
+        if (p.hasRings) drawRings(px, py, p.radius);
+        label(p.name, px + p.radius + 2, py);
+
+        bodies.push({ name:p.name, x:px, y:py, angle:wrap(p.angle), radius:p.radius, hasRings:p.hasRings });
+      });
+
+      // Earth dot
+      ctx.fillStyle = earth.color;
+      ctx.beginPath();
+      ctx.arc(ex, ey, earth.radius, 0, TAU);
+      ctx.fill();
+      label('Earth', ex + earth.radius + 2, ey);
+
+      return { bodies, earthAngle: wrap(earth.angle) };
+    }
+
+    function geocentricFrame() {
+      const ex = Math.cos(earth.angle) * earth.distance;
+      const ey = Math.sin(earth.angle) * earth.distance;
+
+      // Sun (apparent)
+      const sunX = CX - ex, sunY = CY - ey;
+      ctx.fillStyle = sun.color;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, sun.radius, 0, TAU);
+      ctx.fill();
+      label('Sun', sunX + sun.radius + 3, sunY);
+
+      // Earth at center
+      ctx.fillStyle = earth.color;
+      ctx.beginPath();
+      ctx.arc(CX, CY, earth.radius, 0, TAU);
+      ctx.fill();
+      label('Earth', CX + earth.radius + 2, CY);
+
+      const bodies = [];
+      planets.forEach(p => {
+        const px = Math.cos(p.angle) * p.distance;
+        const py = Math.sin(p.angle) * p.distance;
+        const x = CX + (px - ex);
+        const y = CY + (py - ey);
+
+        drawTrail(p); pushTrail(p, x, y);
+
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(x, y, p.radius, 0, TAU);
+        ctx.fill();
+        if (p.hasRings) drawRings(x, y, p.radius);
+        label(p.name, x + p.radius + 2, y);
+
+        const ang = Math.atan2(y - CY, x - CX);
+        bodies.push({ name:p.name, x, y, angle:wrap(ang), radius:p.radius, hasRings:p.hasRings });
+      });
+
+      return { bodies, earthAngle: 0 };
+    }
+
+    // ---------- Ancient tradition profiles ----------
+    // Each profile encodes its "auditory" sensitivities and a concise archaeological gloss.
+    const traditions = [
+      {
+        key: 'Babylonian',
+        name: 'Babylonian (Enūma Anu Enlil)',
+        color: '#e4c590',
+        positive: [0],                         // Coniunctio as potent signum
+        negative: [deg(180), deg(90)],        // Oppositio & quadratura as admonitio
+        softnessAddDeg: 2,
+        gloss: 'Cuneiform omen lists: deities in motion construed for palace and field.'
+      },
+      {
+        key: 'Egyptian',
+        name: 'Egyptian (Sopdet & Nile)',
+        color: '#c7e0ff',
+        positive: [0, deg(60)],               // Co-risings/affinities
+        negative: [deg(180)],
+        softnessAddDeg: 4,
+        gloss: 'Calendrical ritual and inundation cycles: renewal articulated by risings.'
+      },
+      {
+        key: 'Greek',
+        name: 'Greek–Roman (kosmos & harmonia)',
+        color: '#b2ffb2',
+        positive: [0, deg(60), deg(120)],     // Coniunctio, sextilis, trigonum
+        negative: [deg(90), deg(180)],        // Quadratura, oppositio
+        softnessAddDeg: 0,
+        gloss: 'Philosophical handbooks: concordia and discordia in geometric aspectus.'
+      },
+      // Retained: Maya profile based on Venus synodic visibilities
+      {
+        key: 'Maya',
+        name: 'Maya (Venus codices)',
+        color: '#ffb3b3',
+        positive: 'MAYA_POS',                 // Visible Venus intervals
+        negative: 'MAYA_NEG',                 // Invisible intervals
+        softnessAddDeg: 5,
+        gloss: 'Morning/Evening Star visibilities with interposed absences in codical tables.'
+      }
+    ];
+
+    // Dynamic targets for Maya, contingent on Venus visibility
+    function dynamicMayaTargets(venusFav){
+      if (venusFav){
+        return { positive: [0, deg(60), deg(120)], negative: [deg(180)] };
+      } else {
+        return { positive: [deg(120)], negative: [0, deg(90), deg(180)] };
+      }
+    }
+
+    // Tradition cards (UI)
+    const tradState = {};
+    function buildTraditionCards() {
+      traditionsContainer.innerHTML = '';
+      traditions.forEach(tr => {
+        const card = document.createElement('div');
+        card.className = 'tradCard';
+        card.style.borderColor = '#333';
+        card.innerHTML = `
+          <div class="tradHead">
+            <div class="tradName" style="color:${tr.color}">${tr.name}</div>
+            <span class="kbadge">auditus: ${tr.key}</span>
+          </div>
+          <div class="tradNote">${tr.gloss}</div>
+          <div class="miniGrid" style="margin-top:8px;">
+            <div>
+              <div class="miniLabel">Favorable omen</div>
+              <div class="barWrap">
+                <div class="bar euphony" id="barPos_${tr.key}"></div>
+                <div class="band" id="bandPos_${tr.key}"></div>
+              </div>
+              <div style="font-size:12px;margin-top:2px;">Score: <span class="num" id="valPos_${tr.key}">0</span>%</div>
+            </div>
+            <div>
+              <div class="miniLabel">Adverse portent</div>
+              <div class="barWrap">
+                <div class="bar dissonance" id="barNeg_${tr.key}"></div>
+                <div class="band" id="bandNeg_${tr.key}"></div>
+              </div>
+              <div style="font-size:12px;margin-top:2px;">Score: <span class="num" id="valNeg_${tr.key}">0</span>%</div>
+            </div>
+          </div>
+        `;
+        traditionsContainer.appendChild(card);
+        tradState[tr.key] = {
+          barPos: card.querySelector(`#barPos_${tr.key}`),
+          barNeg: card.querySelector(`#barNeg_${tr.key}`),
+          bandPos: card.querySelector(`#bandPos_${tr.key}`),
+          bandNeg: card.querySelector(`#bandNeg_${tr.key}`),
+          valPos: card.querySelector(`#valPos_${tr.key}`),
+          valNeg: card.querySelector(`#valNeg_${tr.key}`)
+        };
+      });
+    }
+    buildTraditionCards();
+
+    // ---------- Prompts (formal, non-prescriptive) ----------
+    function reflectionPrompt(globalPos, globalNeg) {
+      const delta = globalPos - globalNeg;
+      if (delta > 20) {
+        return "The configuration exhibits amity. What minor initiative coheres with this temperamen?";
+      } else if (delta < -20) {
+        return "The configuration intimates friction. What modest beneficium preserves your equilibrium?";
+      } else {
+        return "Concord and peregrination co-exist. What minimal act reconciles both in praesentia?";
+      }
+    }
+
+    // ---------- Loop ----------
+    let last = performance.now();
+    function tick(now) {
+      const dt = now - last; last = now;
+      const dayStep = timeScale * (dt / 16.6667);
+
+      // orbital drift
+      earth.angle = wrap(earth.angle + earth.baseSpeed * dayStep);
+      planets.forEach(p => p.angle = wrap(p.angle + p.baseSpeed * dayStep));
+
+      // advance Venus synodic day
+      venusPhaseDay = (venusPhaseDay + dayStep) % VENUS_SY_PERIOD;
+      const vstate = venusStateByDay(venusPhaseDay);
+      document.getElementById('mayaVenusState').textContent = vstate.state;
+      document.getElementById('mayaVenusDay').textContent = String(Math.floor(vstate.dayIn));
+
+      // paint
+      ctx.clearRect(0,0,W,H);
+      drawStars(now);
+
+      const frame = heliocentric ? heliocentricFrame() : geocentricFrame();
+
+      // GLOBAL aspect indicators
+      let posSum = 0, negSum = 0;
+      const n = frame.bodies.length || 1;
+      frame.bodies.forEach(b => {
+        const diff = angleDifference(b.angle, frame.earthAngle);
+        posSum += intensity(diff, POS_TARGETS_GLOBAL, aspectTolerance);
+        negSum += intensity(diff, NEG_TARGETS_GLOBAL, aspectTolerance);
+      });
+      const posScore = (posSum / n) * 100;
+      const negScore = (negSum / n) * 100;
+
+      const conf = confidenceFromTolerance(toleranceDeg);
+      const posCI = (1 - conf) * 100 * 0.5;
+      const negCI = (1 - conf) * 100 * 0.5;
+
+      posBar.style.width = `${posScore.toFixed(2)}%`;
+      negBar.style.width = `${negScore.toFixed(2)}%`;
+      posVal.textContent = Math.round(posScore).toString();
+      negVal.textContent = Math.round(negScore).toString();
+
+      const pL = Math.max(0, posScore - posCI), pR = Math.min(100, posScore + posCI);
+      const nL = Math.max(0, negScore - negCI), nR = Math.min(100, negScore + negCI);
+      posBand.style.left = `${pL}%`; posBand.style.right = `${100 - pR}%`;
+      negBand.style.left = `${nL}%`; negBand.style.right = `${100 - nR}%`;
+      document.getElementById('posCI').textContent = `±${Math.round(posCI)}`;
+      document.getElementById('negCI').textContent = `±${Math.round(negCI)}`;
+
+      // Tradition-specific indicators (incl. dynamic Maya)
+      traditions.forEach(tr => {
+        let posTargets = tr.positive, negTargets = tr.negative;
+        if (tr.positive === 'MAYA_POS') {
+          const dyn = dynamicMayaTargets(vstate.favorable === 1);
+          posTargets = dyn.positive; negTargets = dyn.negative;
+        }
+        const trTol = deg(Math.max(1, toleranceDeg + (tr.softnessAddDeg || 0)));
+
+        let posS = 0, negS = 0;
+        frame.bodies.forEach(b => {
+          const diff = angleDifference(b.angle, frame.earthAngle);
+          posS += intensity(diff, posTargets, trTol);
+          negS += intensity(diff, negTargets, trTol);
+        });
+        const pScore = (posS / n) * 100;
+        const nScore = (negS / n) * 100;
+
+        const trConf = confidenceFromTolerance(toleranceDeg + (tr.softnessAddDeg || 0));
+        const ci = (1 - trConf) * 100 * 0.5;
+
+        const ui = tradState[tr.key];
+        if (!ui) return;
+        ui.barPos.style.width = `${pScore.toFixed(2)}%`;
+        ui.barNeg.style.width = `${nScore.toFixed(2)}%`;
+        ui.valPos.textContent = Math.round(pScore).toString();
+        ui.valNeg.textContent = Math.round(nScore).toString();
+
+        const bL = Math.max(0, pScore - ci), bR = Math.min(100, pScore + ci);
+        const cL = Math.max(0, nScore - ci), cR = Math.min(100, nScore + ci);
+        ui.bandPos.style.left = `${bL}%`; ui.bandPos.style.right = `${100 - bR}%`;
+        ui.bandNeg.style.left = `${cL}%`; ui.bandNeg.style.right = `${100 - cR}%`;
+      });
+
+      // Counsel (formal, modest)
+      promptBox.textContent = reflectionPrompt(posScore, negScore);
+
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    // ---------- UI bindings ----------
+    frameToggle.addEventListener('change', (e) => {
+      heliocentric = e.target.checked;
+      frameLabel.textContent = heliocentric ? 'Heliocentric (solar centrum)' : 'Geocentric (anthropocentric locus)';
+      planets.forEach(p => p.trail = []); // prevent discontinuities
+    });
+    speedSlider.addEventListener('input', (e) => {
+      timeScale = parseFloat(e.target.value);
+      speedLabel.textContent = e.target.value;
+    });
+    tolSlider.addEventListener('input', (e) => {
+      toleranceDeg = parseInt(e.target.value, 10);
+      aspectTolerance = deg(toleranceDeg);
+      tolLabel.textContent = e.target.value;
+    });
+    starSlider.addEventListener('input', (e) => {
+      initStars(parseInt(e.target.value,10));
+    });
+    trailSlider.addEventListener('input', (e) => {
+      trailMax = parseInt(e.target.value, 10);
+      planets.forEach(p => { if (p.trail.length > trailMax) p.trail = p.trail.slice(-trailMax); });
+    });
+
+    // keyboard convenience: 'h' toggles frame
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'h') {
+        frameToggle.checked = !frameToggle.checked;
+        frameToggle.dispatchEvent(new Event('change'));
+      }
+    });
+  </script>
+</body>
+</html>
